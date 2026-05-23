@@ -1,0 +1,49 @@
+# Schema for notification configuration block (used inside config.yml)
+# All fields are optional; channels not listed are skipped.
+
+type: object
+additionalProperties: false
+properties:
+  channels:
+    type: array
+    items:
+      type: string
+      enum: [email, slack]
+    uniqueItems: true
+    description: "Ordered list of notification channels to use."
+    default: []
+
+  email_to:
+    type: string
+    format: email
+    description: "Recipient e-mail address."
+
+  email_from:
+    type: string
+    format: email
+    description: "Sender e-mail address."
+
+  smtp_host:
+    type: string
+    default: "localhost"
+    description: "SMTP server hostname."
+
+  smtp_port:
+    type: integer
+    minimum: 1
+    maximum: 65535
+    default: 25
+    description: "SMTP server port."
+
+  smtp_user:
+    type: string
+    description: "SMTP authentication username (optional)."
+
+  smtp_password:
+    type: string
+    description: "SMTP authentication password (optional)."
+
+  slack_webhook_url:
+    type: string
+    format: uri
+    description: "Slack incoming webhook URL."
