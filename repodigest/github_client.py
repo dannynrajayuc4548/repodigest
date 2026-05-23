@@ -1,60 +1,70 @@
-"""GitHub API client for fetching repository activity."""
+"""GitHub API client with optional file-based caching."""
 
+import os
 from datetime import datetime, timedelta, timezone
-from typing import Any
+from typing import Any, Dict, List, Optional
 
 import requests
 
-GITHUB_API_BASE = "https://api.github.com"
-DEFAULT_HEADERS = {
-    "Accept": "application/vnd.github+json",
-    "X-GitHub-Api-Version": "2022-11-28",
-}
+from repodigest.cache import Cache
+
+BASE_URL = "https://api.github.com"
+DEFAULT_LOOKBACK_DAYS = 7
 
 
 class GitHubClient:
     """Thin wrapper around the GitHub REST API."""
 
-    def __init__(self, token: str | None = None) -> None:
+    def __init__(
+        self,
+        token: Optional[str] = None,
+        use_cache: bool = True,
+        cache_ttl: int = 3600,
+    ):
+        self.token = token or os.environ.get("GITHUB_TOKEN")
         self.session = requests.Session()
-        self.session.headers.update(DEFAULT_HEADERS)
-        if token:
-            self.session.headers["Authorization"] = f"Bearer {token}"
+        self.session.headers.update(
+            {
+                "Accept": "application/vnd.github+json",
+                "X-GitHub-Api-Version": "2022-11-28",
+            }
+        )
+        if self.token:
+            self.session.headers["Authorization"] = f"Bearer {self.token}"
+        self.cache: Optional[Cache] = Cache(ttl=cache_ttl) if use_cache else None
 
-    def _get(self, path: str, params: dict | None = None) -> Any:
-        url = f"{GITHUB_API_BASE}{path}"
-        response = self.session.get(url, params=params, timeout=15)
+    def _get(self, path: str, params: Optional[Dict] = None) -> Any:
+        url = f"{BASE_URL}{path}"
+        cache_key = path + ("?" + "&".join(f"{k}={v}" for k, v in sorted((params or {}).items())) if params else "")
+        if self.cache:
+            cached = self.cache.get(cache_key)
+            if cached is not None:
+                return cached
+        response = self.session.get(url, params=params)
         response.raise_for_status()
-        return response.json()
+        data = response.json()
+        if self.cache:
+            self.cache.set(cache_key, data)
+        return data
 
-    def get_commits(self, owner: str, repo: str, since: datetime) -> list[dict]:
-        """Return commits pushed after *since*."""
-        return self._get(
-            f"/repos/{owner}/{repo}/commits",
-            params={"since": since.isoformat()},
-        )
+    def _since(self, days: int = DEFAULT_LOOKBACK_DAYS) -> str:
+        dt = datetime.now(timezone.utc) - timedelta(days=days)
+        return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
 
-    def get_pull_requests(self, owner: str, repo: str, since: datetime) -> list[dict]:
-        """Return pull requests updated after *since*."""
-        prs = self._get(
-            f"/repos/{owner}/{repo}/pulls",
-            params={"state": "all", "sort": "updated", "direction": "desc", "per_page": 50},
-        )
-        return [pr for pr in prs if datetime.fromisoformat(pr["updated_at"].rstrip("Z")).replace(tzinfo=timezone.utc) >= since]
+    def get_commits(self, repo: str, days: int = DEFAULT_LOOKBACK_DAYS) -> List[Dict]:
+        return self._get(f"/repos/{repo}/commits", {"since": self._since(days), "per_page": 100})
 
-    def get_issues(self, owner: str, repo: str, since: datetime) -> list[dict]:
-        """Return issues (excluding PRs) updated after *since*."""
-        items = self._get(
-            f"/repos/{owner}/{repo}/issues",
-            params={"state": "all", "since": since.isoformat(), "per_page": 50},
-        )
-        return [i for i in items if "pull_request" not in i]
+    def get_pull_requests(self, repo: str, state: str = "all") -> List[Dict]:
+        return self._get(f"/repos/{repo}/pulls", {"state": state, "per_page": 100, "sort": "updated", "direction": "desc"})
 
-    def get_releases(self, owner: str, repo: str) -> list[dict]:
-        """Return the five most recent releases."""
-        return self._get(f"/repos/{owner}/{repo}/releases", params={"per_page": 5})
+    def get_issues(self, repo: str, state: str = "open") -> List[Dict]:
+        return self._get(f"/repos/{repo}/issues", {"state": state, "per_page": 100, "sort": "updated"})
 
+    def get_releases(self, repo: str) -> List[Dict]:
+        return self._get(f"/repos/{repo}/releases", {"per_page": 10})
 
-def week_ago() -> datetime:
-    """Return a timezone-aware datetime representing exactly one week ago."""
-    return datetime.now(tz=timezone.utc) - timedelta(weeks=1)
+    def get_repo(self, repo: str) -> Dict:
+        return self._get(f"/repos/{repo}")
+
+    def get_contributors(self, repo: str) -> List[Dict]:
+        return self._get(f"/repos/{repo}/contributors", {"per_page": 10})
