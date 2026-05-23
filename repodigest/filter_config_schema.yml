@@ -1,0 +1,43 @@
+# Schema for the optional [filters] section in repodigest config
+filters:
+  type: object
+  additionalProperties: false
+  properties:
+    authors:
+      type: array
+      items:
+        type: string
+      description: >
+        Restrict activity to commits/PRs/issues authored by these GitHub
+        logins.  An empty list means "all authors".
+      default: []
+    labels:
+      type: array
+      items:
+        type: string
+      description: >
+        Only include PRs and issues that carry at least one of these labels.
+        An empty list means "all labels".
+      default: []
+    exclude_bots:
+      type: boolean
+      description: >
+        When true (default) any author whose login ends with [bot], -bot, or
+        _bot is silently dropped from all activity lists.
+      default: true
+    min_additions:
+      type: integer
+      minimum: 0
+      description: >
+        Minimum number of added lines a commit must have to be included.
+        Omit or set to null to disable.
+      nullable: true
+      default: null
+    min_deletions:
+      type: integer
+      minimum: 0
+      description: >
+        Minimum number of deleted lines a commit must have to be included.
+        Omit or set to null to disable.
+      nullable: true
+      default: null
