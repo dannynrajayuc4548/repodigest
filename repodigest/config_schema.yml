@@ -1,42 +1,65 @@
-# repodigest configuration file schema / example
-# Copy this file to ~/.repodigest.yml and fill in your values.
+# repodigest configuration schema
+# All fields are optional unless marked required.
 
-# ---------------------------------------------------------------------------
-# Required
-# ---------------------------------------------------------------------------
+token:
+  type: string
+  required: true
+  description: >-
+    GitHub personal access token (or set GITHUB_TOKEN env var).
 
-# Personal access token with repo read scope.
-# Can also be set via the GITHUB_TOKEN environment variable.
-token: ""
+repo:
+  type: string
+  required: true
+  pattern: "^[\\w.-]+/[\\w.-]+$"
+  description: Repository in "owner/name" format.
 
-# Repository to summarise in "owner/name" format.
-# Can also be set via the REPODIGEST_REPO environment variable.
-repo: ""
+days:
+  type: integer
+  default: 7
+  min: 1
+  max: 365
+  description: Number of past days to include in the digest.
 
-# ---------------------------------------------------------------------------
-# Optional
-# ---------------------------------------------------------------------------
+output_format:
+  type: string
+  default: text
+  choices: [text, markdown, json]
+  description: Rendering format for the digest.
 
-# Number of days to look back when collecting activity.
-# Range: 1–365.  Default: 7.
-# Can also be set via the REPODIGEST_DAYS environment variable.
-days: 7
+output_file:
+  type: string
+  required: false
+  description: Write output to this file path instead of stdout.
 
-# Output format: text | markdown | json
-# Can also be set via the REPODIGEST_FORMAT environment variable.
-output_format: text
+cache_ttl:
+  type: integer
+  default: 3600
+  min: 0
+  description: Cache time-to-live in seconds (0 disables caching).
 
-# Write the digest to this file instead of stdout.
-# Leave empty (or omit) to print to stdout.
-output_file: ""
-
-# How long (in seconds) to cache GitHub API responses on disk.
-# Set to 0 to disable caching.
-cache_ttl: 300
-
-# Additional issue/PR labels to count in the digest summary.
-# Example:
-#   extra_labels:
-#     - bug
-#     - enhancement
-extra_labels: []
+filter:
+  type: object
+  required: false
+  description: Optional filters applied to digest items.
+  properties:
+    authors:
+      type: array
+      items: string
+      description: Only include activity from these GitHub logins.
+    labels:
+      type: array
+      items: string
+      description: Only include PRs/issues carrying at least one of these labels.
+    exclude_bots:
+      type: boolean
+      default: false
+      description: Drop activity authored by bot accounts.
+    min_comments:
+      type: integer
+      default: 0
+      min: 0
+      description: Minimum comment count for PRs and issues.
+    title_contains:
+      type: string
+      required: false
+      description: Case-insensitive substring that must appear in the title or commit message.
