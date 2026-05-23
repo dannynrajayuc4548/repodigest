@@ -1,0 +1,42 @@
+# repodigest configuration file schema / example
+# Copy this file to ~/.repodigest.yml and fill in your values.
+
+# ---------------------------------------------------------------------------
+# Required
+# ---------------------------------------------------------------------------
+
+# Personal access token with repo read scope.
+# Can also be set via the GITHUB_TOKEN environment variable.
+token: ""
+
+# Repository to summarise in "owner/name" format.
+# Can also be set via the REPODIGEST_REPO environment variable.
+repo: ""
+
+# ---------------------------------------------------------------------------
+# Optional
+# ---------------------------------------------------------------------------
+
+# Number of days to look back when collecting activity.
+# Range: 1–365.  Default: 7.
+# Can also be set via the REPODIGEST_DAYS environment variable.
+days: 7
+
+# Output format: text | markdown | json
+# Can also be set via the REPODIGEST_FORMAT environment variable.
+output_format: text
+
+# Write the digest to this file instead of stdout.
+# Leave empty (or omit) to print to stdout.
+output_file: ""
+
+# How long (in seconds) to cache GitHub API responses on disk.
+# Set to 0 to disable caching.
+cache_ttl: 300
+
+# Additional issue/PR labels to count in the digest summary.
+# Example:
+#   extra_labels:
+#     - bug
+#     - enhancement
+extra_labels: []
