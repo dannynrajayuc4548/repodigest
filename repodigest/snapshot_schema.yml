@@ -1,0 +1,57 @@
+# JSON-serialisable schema documentation for DigestSnapshot
+# (used for validation reference and documentation only)
+
+type: object
+required:
+  - repo
+  - week_start
+  - commit_count
+  - open_prs
+  - merged_prs
+  - open_issues
+  - closed_issues
+  - top_contributors
+  - release_count
+
+properties:
+  repo:
+    type: string
+    description: "Full repository slug, e.g. owner/name"
+    pattern: "^[\\w.-]+/[\\w.-]+$"
+
+  week_start:
+    type: string
+    description: "ISO-8601 date of the Monday that starts the digest week"
+    format: date
+
+  commit_count:
+    type: integer
+    minimum: 0
+    description: "Total commits in the period"
+
+  open_prs:
+    type: integer
+    minimum: 0
+
+  merged_prs:
+    type: integer
+    minimum: 0
+
+  open_issues:
+    type: integer
+    minimum: 0
+
+  closed_issues:
+    type: integer
+    minimum: 0
+
+  top_contributors:
+    type: array
+    items:
+      type: string
+    description: "Ordered list of contributor login names"
+
+  release_count:
+    type: integer
+    minimum: 0
+    description: "Number of releases published in the period"
